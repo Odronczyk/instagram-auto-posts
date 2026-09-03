@@ -1,30 +1,53 @@
-name: Publikowanie posta na Instagramie
+name: Publikowanie postów na Instagramie
 
 on:
+  schedule:
+  - cron: "17 6 * * *"
+    timezone: "Europe/Warsaw"
   workflow_dispatch:
 
-  schedule:
-    - cron: "37 17 * * *"
-      timezone: "Europe/Warsaw"
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-daily-post
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Pobierz pliki repozytorium
+      - name: Pobierz repozytorium
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Skonfiguruj Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Zainstaluj bibliotekę requests
+      - name: Zainstaluj biblioteki
         run: pip install requests
 
-      - name: Opublikuj post
+      - name: Opublikuj karuzelę
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
         run: python publish.py
+
+      - name: Zapisz stan publikacji
+        run: |
+          if git diff --quiet -- state.json; then
+            echo "Brak zmian w state.json"
+            exit 0
+          fi
+
+          git config user.name "instagram-publisher-bot"
+          git config user.email "instagram-publisher-bot@users.noreply.github.com"
+
+          git add state.json
+          git commit -m "Aktualizacja stanu publikacji Instagrama"
+          git pull --rebase
+          git push
