@@ -2,7 +2,7 @@ name: Publikowanie postów na Instagramie
 
 on:
   schedule:
-  - cron: "17 6 * * *"
+  - cron: "17 3 * * *"
     timezone: "Europe/Warsaw"
   workflow_dispatch:
 
